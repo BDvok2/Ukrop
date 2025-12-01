@@ -1,6 +1,7 @@
 import React from 'react';
 import translateIcon from '../assets/translate.png';
 import questionIcon from '../assets/question.png';
+import userphoto from '../assets/userphoto.png';
 
 export default function BottomBar({ page, onNav }) {
   return (
@@ -12,9 +13,10 @@ export default function BottomBar({ page, onNav }) {
 
       <div className="center-slot">
         <button className="avatar-btn">
-          <img src="" alt="" />
+          <img src={userphoto}  alt="" />
         </button>
-        <span className="center-label">Вітаю, Шкібідист</span>
+        <span className="center-label">Доброго!</span>
+        <span className="center-label">Дня</span>
       </div>
 
       <button className="nav-item nav-item--explain" onClick={() => onNav('explain')}>
