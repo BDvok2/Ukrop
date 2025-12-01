@@ -15,8 +15,8 @@ export default function BottomBar({ page, onNav }) {
         <button className="avatar-btn">
           <img src={userphoto}  alt="" />
         </button>
-        <span className="center-label">Доброго!</span>
-        <span className="center-label">Дня</span>
+        <span className="center-label">Вітаю, користувач!</span>
+        
       </div>
 
       <button className="nav-item nav-item--explain" onClick={() => onNav('explain')}>
