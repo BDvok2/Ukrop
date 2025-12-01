@@ -71,6 +71,38 @@ app.post('/api/analyze-word', async (req, res) => {
   }
 });
 
+app.post('/api/explain-sentence', async (req, res) => {
+  if (!openRouter) {
+    return res.status(500).json({ error: 'Missing OpenRouter API key on server' });
+  }
+
+  const sentence = req.body?.sentence?.trim();
+  if (!sentence) {
+    return res.status(400).json({ error: 'Missing sentence' });
+  }
+
+  try {
+    const response = await openRouter.chat.send({
+      model:
+        process.env.OPENROUTER_MODEL_SENTENCE ||
+        process.env.OPENROUTER_MODEL ||
+        'google/gemini-2.5-flash',
+      messages: [
+        { role: 'system', content: sentenceSystemPrompt },
+        { role: 'user', content: createSentencePrompt(sentence) },
+      ],
+      stream: false,
+      temperature: 0.7,
+    });
+
+    const explanation = response.choices?.[0]?.message?.content?.trim?.() ?? '';
+    res.json({ explanation });
+  } catch (error) {
+    console.error('OpenRouter sentence explanation failed:', error);
+    res.status(500).json({ error: 'Failed to explain sentence' });
+  }
+});
+
 const systemPrompt = `Ти — філолог-україніст і лінгвіст. Працюєш лише з українською мовою. Користувач дає одне українське слово. Проаналізуй його за наступним планом. Відповідай українською мовою.
 
 1. Добір синонімів
@@ -137,7 +169,7 @@ const systemPrompt = `Ти — філолог-україніст і лінгві
 6.3. У кожному реченні виділи це слово підкресленням за допомогою символів _ (підкресли лише саме слово). Окремо вкажи, яку синтаксичну роль воно виконує в реченні: підмет, присудок, додаток, означення, обставина тощо.
 
 Формат для кожного речення:
-Речення: ... _слово_ ...
+Речення: ... СЛОВО ...
 Синтаксична роль: (підмет, присудок, додаток, означення, обставина тощо).
 
 Загальні вимоги:
@@ -255,6 +287,18 @@ const wordSchema = {
 
 function createPrompt({ sentence, word }) {
   return `Речення: ${sentence ?? '—'}\nСлово: ${word}\nСформуй структуровану відповідь.`;
+}
+
+const sentenceSystemPrompt = `Ти — український мовознавець. Пояснюєш розмовні, діалектні, жартівливі вислови та фразеологізми українською. Пиши коротко (до 4 насичених абзаців), але структуровано у форматі нумерованих пунктів:
+1. Стисла перефраза: ...
+2. Підтекст і тон: ...
+3. Контекст уживання: ...
+4. Фразеологізми: ... (переліч та поясни, тільки якщо вони є)
+Використовуй лише ті пункти, де маєш що сказати; інші пропускай без згадок. Не вигадуй фактів.
+Якщо пишеш ** то завжди закривай таким же **`;
+
+function createSentencePrompt(sentence) {
+  return `Речення: «${sentence}»\n\nРозбери його за планом із системного повідомлення. Якщо певний пункт не застосовується, просто пропусти його й не виводь заголовок. Особливо поясни фразеологізми й неформальні звороти, якщо вони присутні.`;
 }
 
 function tryParseJSON(raw) {

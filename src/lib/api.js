@@ -35,6 +35,26 @@ export async function analyzeWord(sentence, word, signal) {
   };
 }
 
+export async function explainSentence(sentence, signal) {
+  const res = await fetch('/api/explain-sentence', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ sentence }),
+    signal,
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to explain sentence');
+  }
+
+  const data = await res.json();
+  return {
+    explanation: data?.explanation ?? '',
+  };
+}
+
 export const LANGS = {
   en: 'Англійська',
   uk: 'Українська',

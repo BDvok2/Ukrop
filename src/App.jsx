@@ -4,7 +4,7 @@ import ExplainView from './components/ExplainView.jsx';
 import WordDetailView from './components/WordDetailView.jsx';
 import TopBar from './components/TopBar.jsx';
 import BottomBar from './components/BottomBar.jsx';
-import { analyzeWord } from './lib/api.js';
+import { analyzeWord, explainSentence } from './lib/api.js';
 
 const defaultExplainText = 'Ти кажеш, що написав щось дуже розумне (по-твоєму), але з іронією чи жартом. Тобто: «Я тут таке розумне написав» або «Я щось дуже мудре наговорив».';
 
@@ -27,24 +27,49 @@ export default function App() {
   const mainRef = React.useRef(null);
   const savedScroll = React.useRef(0);
   const wordControllerRef = React.useRef(null);
+  const sentenceControllerRef = React.useRef(null);
 
   const onSwap = React.useCallback(() => {
     setFrom(to);
     setTo(from);
   }, [from, to]);
 
-  const handleExplainSubmit = React.useCallback((sentence) => {
-    const trimmed = sentence.trim();
-    setExInput(trimmed);
-    setExSentence(trimmed);
-    setExText(trimmed ? `Речення зафіксовано: ${trimmed}` : defaultExplainText);
+  const fetchSentenceExplanation = React.useCallback(async (sentence) => {
+    if (!sentence) {
+      setExText(defaultExplainText);
+      return;
+    }
+
+    sentenceControllerRef.current?.abort?.();
+    const controller = new AbortController();
+    sentenceControllerRef.current = controller;
+    setExText('Пояснюємо речення…');
+
+    try {
+      const { explanation } = await explainSentence(sentence, controller.signal);
+      setExText(explanation || `Речення зафіксовано: ${sentence}`);
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+      setExText('Не вдалося пояснити речення. Спробуйте ще раз.');
+    }
   }, []);
+
+  const handleExplainSubmit = React.useCallback(
+    (sentence) => {
+      const trimmed = sentence.trim();
+      setExInput(trimmed);
+      setExSentence(trimmed);
+      fetchSentenceExplanation(trimmed);
+    },
+    [fetchSentenceExplanation]
+  );
 
   const handleUnlock = React.useCallback(() => {
     setExLocked(false);
     setExShown(false);
     setExSentence('');
     setExText(defaultExplainText);
+    sentenceControllerRef.current?.abort?.();
     wordControllerRef.current?.abort?.();
   }, []);
 
@@ -105,6 +130,7 @@ export default function App() {
 
   React.useEffect(
     () => () => {
+      sentenceControllerRef.current?.abort?.();
       wordControllerRef.current?.abort?.();
     },
     []
